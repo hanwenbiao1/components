@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.sforce.ws.bind.XmlObject;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 import org.talend.components.api.component.runtime.WriteOperation;
@@ -40,6 +39,7 @@ import com.sforce.soap.partner.SaveResult;
 import com.sforce.soap.partner.UpsertResult;
 import com.sforce.soap.partner.sobject.SObject;
 import com.sforce.ws.ConnectionException;
+import com.sforce.ws.bind.XmlObject;
 
 final class SalesforceWriter implements Writer<WriterResult> {
 
@@ -78,6 +78,12 @@ final class SalesforceWriter implements Writer<WriterResult> {
     private transient IndexedRecordAdapterFactory<Object, ? extends IndexedRecord> factory;
 
     private transient Schema schema;
+
+    /**
+     * TODO: This must be removed as soon as possible -- it is currently present to provide additional information
+     * outside of this writer for TCOMP-183, which requires that an OutputComponent has outgoing connections.
+     */
+    public String lastId;
 
     public SalesforceWriter(SalesforceWriteOperation salesforceWriteOperation, RuntimeContainer container) {
         this.salesforceWriteOperation = salesforceWriteOperation;
@@ -141,7 +147,8 @@ final class SalesforceWriter implements Writer<WriterResult> {
                             String lookupFieldName = relationMap.get("lookupFieldName");
                             so.setField(lookupFieldName, null);
                             so.getChild(lookupFieldName).setField("type", relationMap.get("lookupFieldModuleName"));
-                            addSObjectField(so.getChild(lookupFieldName), se.schema().getType(), relationMap.get("lookupFieldExternalIdName"), value);
+                            addSObjectField(so.getChild(lookupFieldName), se.schema().getType(),
+                                    relationMap.get("lookupFieldExternalIdName"), value);
                         } else {
                             addSObjectField(so, se.schema().getType(), se.name(), value);
                         }
@@ -150,18 +157,22 @@ final class SalesforceWriter implements Writer<WriterResult> {
             }
 
             switch (TSalesforceOutputProperties.OutputAction.valueOf(sprops.outputAction.getStringValue())) {
-                case INSERT:
-                    insert(so);
-                    break;
-                case UPDATE:
-                    update(so);
-                    break;
-                case UPSERT:
-                    upsert(so);
-                    break;
-                case DELETE:
-                    // See below
-                    throw new RuntimeException("Impossible");
+            case INSERT:
+                SaveResult[] insertResult = insert(so);
+                if (!sprops.extendInsert.getBooleanValue() && sprops.retrieveInsertId.getBooleanValue()) {
+                    // TODO: This technique should not be used. 
+                    lastId = insertResult[0].getId();
+                }
+                break;
+            case UPDATE:
+                update(so);
+                break;
+            case UPSERT:
+                upsert(so);
+                break;
+            case DELETE:
+                // See below
+                throw new RuntimeException("Impossible");
             }
         } else { // DELETE
             String id = getIdValue(input);
@@ -184,16 +195,16 @@ final class SalesforceWriter implements Writer<WriterResult> {
         Object valueToAdd = null;
         // Convert stuff here
         switch (expected) {
-            case BYTES:
-                valueToAdd = Charset.defaultCharset().decode(ByteBuffer.wrap((byte[]) value)).toString();
-                break;
-            // case DATE:
-            // case DATETIME:
-            // valueToAdd = container.formatDate((Date) value, se.getPattern());
-            // break;
-            default:
-                valueToAdd = value;
-                break;
+        case BYTES:
+            valueToAdd = Charset.defaultCharset().decode(ByteBuffer.wrap((byte[]) value)).toString();
+            break;
+        // case DATE:
+        // case DATETIME:
+        // valueToAdd = container.formatDate((Date) value, se.getPattern());
+        // break;
+        default:
+            valueToAdd = value;
+            break;
         }
         xmlObject.setField(fieldName, valueToAdd);
     }
@@ -297,7 +308,7 @@ final class SalesforceWriter implements Writer<WriterResult> {
 
     protected void handleResults(boolean success, Error[] resultErrors, String[] changedItemKeys, int batchIdx)
             throws IOException {
-        //StringBuilder errors = new StringBuilder("");
+        // StringBuilder errors = new StringBuilder("");
 
         Map<String, Object> resultMessage = new HashMap<String, Object>();
 
@@ -305,7 +316,8 @@ final class SalesforceWriter implements Writer<WriterResult> {
             successCount++;
             // TODO: send back the ID
         } else {
-            //TODO now we use batch mode for commit the data to salesforce, but the batch size is 1 at any time, so the code is ok now, but we need fix it.
+            // TODO now we use batch mode for commit the data to salesforce, but the batch size is 1 at any time, so the
+            // code is ok now, but we need fix it.
             rejectCount++;
             for (Error error : resultErrors) {
                 if (error.getStatusCode() != null) {
@@ -328,16 +340,14 @@ final class SalesforceWriter implements Writer<WriterResult> {
             throw new DataRejectException(resultMessage);
 
             /*
-            errors = SalesforceRuntime.addLog(resultErrors,
-            	batchIdx < changedItemKeys.length ? changedItemKeys[batchIdx] : "Batch index out of bounds", null);
-            */
+             * errors = SalesforceRuntime.addLog(resultErrors, batchIdx < changedItemKeys.length ?
+             * changedItemKeys[batchIdx] : "Batch index out of bounds", null);
+             */
         }
 
         /*
-        if (exceptionForErrors && errors.toString().length() > 0) {
-            throw new IOException(errors.toString());
-        }
-        */
+         * if (exceptionForErrors && errors.toString().length() > 0) { throw new IOException(errors.toString()); }
+         */
 
     }
 
@@ -409,7 +419,8 @@ final class SalesforceWriter implements Writer<WriterResult> {
             List<String> columns = (List<String>) value;
             List<String> lookupFieldModuleNames = (List<String>) sprops.upsertRelationTable.lookupFieldModuleName.getValue();
             List<String> lookupFieldNames = (List<String>) sprops.upsertRelationTable.lookupFieldName.getValue();
-            List<String> externalIdFromLookupFields = (List<String>) sprops.upsertRelationTable.lookupFieldExternalIdName.getValue();
+            List<String> externalIdFromLookupFields = (List<String>) sprops.upsertRelationTable.lookupFieldExternalIdName
+                    .getValue();
             for (int index = 0; index < columns.size(); index++) {
                 Map<String, String> relationMap = new HashMap<>();
                 relationMap.put("lookupFieldModuleName", lookupFieldModuleNames.get(index));
