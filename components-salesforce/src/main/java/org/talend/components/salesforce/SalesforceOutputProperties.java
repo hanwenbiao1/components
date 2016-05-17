@@ -15,6 +15,7 @@ package org.talend.components.salesforce;
 import static org.talend.daikon.properties.PropertyFactory.*;
 import static org.talend.daikon.properties.presentation.Widget.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import java.util.Set;
 import org.apache.avro.Schema;
 import org.talend.components.api.component.Connector;
 import org.talend.components.api.component.PropertyPathConnector;
+import org.talend.components.api.exception.ComponentException;
 import org.talend.components.api.properties.ComponentPropertyFactory;
 import org.talend.components.common.SchemaProperties;
 import org.talend.daikon.properties.Property;
@@ -113,8 +115,6 @@ public class SalesforceOutputProperties extends SalesforceConnectionModuleProper
         ComponentPropertyFactory.newReturnProperty(returns, Property.Type.INT, NB_SUCCESS); //$NON-NLS-1$
         ComponentPropertyFactory.newReturnProperty(returns, Property.Type.INT, NB_REJECT); //$NON-NLS-1$
 
-        setupRejectSchema();
-
         module = new ModuleSubclass("module");
         module.connection = connection;
         module.setupProperties();
@@ -155,14 +155,8 @@ public class SalesforceOutputProperties extends SalesforceConnectionModuleProper
 
     @Override
     protected Set<PropertyPathConnector> getAllSchemaPropertiesConnectors(boolean isOutputConnection) {
-        HashSet<PropertyPathConnector> connectors = new HashSet<>();
-        if (isOutputConnection) {
-            connectors.add(FLOW_CONNECTOR);
-            connectors.add(REJECT_CONNECTOR);
-        } else {
-            connectors.add(MAIN_CONNECTOR);
-        }
-        return connectors;
+        // Need to be implemented by subclass
+        throw new ComponentException(new RuntimeException("Need to be implemented!"));
     }
 
     protected List<String> getFieldNames(Property schema) {
@@ -172,10 +166,6 @@ public class SalesforceOutputProperties extends SalesforceConnectionModuleProper
             fieldNames.add(f.name());
         }
         return fieldNames;
-    }
-
-    protected void setupRejectSchema() {
-        // left empty for subclass to override
     }
 
 }

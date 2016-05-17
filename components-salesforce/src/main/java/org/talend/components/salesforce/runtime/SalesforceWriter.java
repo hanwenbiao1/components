@@ -84,13 +84,18 @@ final class SalesforceWriter implements Writer<WriterResult> {
         this.container = container;
         sink = (SalesforceSink) salesforceWriteOperation.getSink();
         sprops = sink.getSalesforceOutputProperties();
-        commitLevel = 1;
+        if (sprops.extendInsert.getBooleanValue()) {
+            commitLevel = sprops.commitLevel.getIntValue();
+        } else {
+            commitLevel = 1;
+        }
         int arraySize = commitLevel * 2;
         deleteItems = new ArrayList<>(arraySize);
         insertItems = new ArrayList<>(arraySize);
         updateItems = new ArrayList<>(arraySize);
         upsertItems = new ArrayList<>(arraySize);
         upsertKeyColumn = "";
+        exceptionForErrors = sprops.ceaseForError.getBooleanValue();
 
     }
 
@@ -200,11 +205,14 @@ final class SalesforceWriter implements Writer<WriterResult> {
 
     protected SaveResult[] insert(SObject sObject) throws IOException {
         insertItems.add(sObject);
-        return doInsert();
+        if (insertItems.size() >= commitLevel) {
+            return doInsert();
+        }
+        return null;
     }
 
     protected SaveResult[] doInsert() throws IOException {
-        if (insertItems.size() >= commitLevel) {
+        if (insertItems.size() > 0) {
             SObject[] accs = insertItems.toArray(new SObject[insertItems.size()]);
             String[] changedItemKeys = new String[accs.length];
             SaveResult[] sr;
@@ -227,11 +235,14 @@ final class SalesforceWriter implements Writer<WriterResult> {
 
     protected SaveResult[] update(SObject sObject) throws IOException {
         updateItems.add(sObject);
-        return doUpdate();
+        if (updateItems.size() >= commitLevel) {
+            return doUpdate();
+        }
+        return null;
     }
 
     protected SaveResult[] doUpdate() throws IOException {
-        if (updateItems.size() >= commitLevel) {
+        if (updateItems.size() > 0) {
             SObject[] upds = updateItems.toArray(new SObject[updateItems.size()]);
             String[] changedItemKeys = new String[upds.length];
             for (int ix = 0; ix < upds.length; ++ix) {
@@ -259,11 +270,14 @@ final class SalesforceWriter implements Writer<WriterResult> {
 
     protected UpsertResult[] upsert(SObject sObject) throws IOException {
         upsertItems.add(sObject);
-        return doUpsert();
+        if (upsertItems.size() >= commitLevel) {
+            return doUpsert();
+        }
+        return null;
     }
 
     protected UpsertResult[] doUpsert() throws IOException {
-        if (upsertItems.size() >= commitLevel) {
+        if (upsertItems.size() > 0) {
             SObject[] upds = upsertItems.toArray(new SObject[upsertItems.size()]);
             String[] changedItemKeys = new String[upds.length];
             for (int ix = 0; ix < upds.length; ++ix) {
@@ -300,57 +314,57 @@ final class SalesforceWriter implements Writer<WriterResult> {
         //StringBuilder errors = new StringBuilder("");
 
         Map<String, Object> resultMessage = new HashMap<String, Object>();
-
+        StringBuilder errors = new StringBuilder("");
         if (success) {
             successCount++;
             // TODO: send back the ID
         } else {
             //TODO now we use batch mode for commit the data to salesforce, but the batch size is 1 at any time, so the code is ok now, but we need fix it.
-            rejectCount++;
-            for (Error error : resultErrors) {
-                if (error.getStatusCode() != null) {
-                    resultMessage.put("errorCode", error.getStatusCode().toString());
-                }
-                if (error.getFields() != null) {
-                    StringBuffer fields = new StringBuffer();
-                    for (String field : error.getFields()) {
-                        fields.append(field);
-                        fields.append(",");
+            if (exceptionForErrors) {
+                errors = SalesforceRuntime.addLog(resultErrors,
+                        batchIdx < changedItemKeys.length ? changedItemKeys[batchIdx] : "Batch index out of bounds", null);
+            } else {
+                rejectCount++;
+                if (!sprops.extendInsert.getBooleanValue()) {
+                    for (Error error : resultErrors) {
+                        if (error.getStatusCode() != null) {
+                            resultMessage.put("errorCode", error.getStatusCode().toString());
+                        }
+                        if (error.getFields() != null) {
+                            StringBuffer fields = new StringBuffer();
+                            for (String field : error.getFields()) {
+                                fields.append(field);
+                                fields.append(",");
+                            }
+                            if (fields.length() > 0) {
+                                fields.deleteCharAt(fields.length() - 1);
+                            }
+                            resultMessage.put("errorFields", fields.toString());
+                        }
+                        resultMessage.put("errorMessage", error.getMessage());
                     }
-                    if (fields.length() > 0) {
-                        fields.deleteCharAt(fields.length() - 1);
-                    }
-                    resultMessage.put("errorFields", fields.toString());
+                    throw new DataRejectException(resultMessage);
                 }
-                resultMessage.put("errorMessage", error.getMessage());
             }
-
-            throw new DataRejectException(resultMessage);
-
-            /*
-            errors = SalesforceRuntime.addLog(resultErrors,
-            	batchIdx < changedItemKeys.length ? changedItemKeys[batchIdx] : "Batch index out of bounds", null);
-            */
         }
-
-        /*
         if (exceptionForErrors && errors.toString().length() > 0) {
             throw new IOException(errors.toString());
         }
-        */
 
     }
 
     protected DeleteResult[] delete(String id) throws IOException {
-        if (id == null) {
-            return null;
+        if (id != null) {
+            deleteItems.add(id);
+            if (deleteItems.size() >= commitLevel) {
+                return doDelete();
+            }
         }
-        deleteItems.add(id);
-        return doDelete();
+        return null;
     }
 
     protected DeleteResult[] doDelete() throws IOException {
-        if (deleteItems.size() >= commitLevel) {
+        if (deleteItems.size() > 0) {
             String[] delIDs = deleteItems.toArray(new String[deleteItems.size()]);
             String[] changedItemKeys = new String[delIDs.length];
             for (int ix = 0; ix < delIDs.length; ++ix) {

@@ -22,12 +22,17 @@ import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.SchemaBuilder.FieldBuilder;
 import org.apache.avro.SchemaBuilder.RecordBuilder;
 import org.talend.components.api.component.ISchemaListener;
+import org.talend.components.api.component.PropertyPathConnector;
+import org.talend.components.common.SchemaProperties;
 import org.talend.components.salesforce.SalesforceOutputProperties;
 import org.talend.daikon.avro.SchemaConstants;
 import org.talend.daikon.properties.Property;
 import org.talend.daikon.properties.presentation.Form;
 import org.talend.daikon.properties.presentation.Widget;
 import org.talend.daikon.talend6.Talend6SchemaConstants;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class TSalesforceOutputProperties extends SalesforceOutputProperties {
 
@@ -44,7 +49,6 @@ public class TSalesforceOutputProperties extends SalesforceOutputProperties {
 
     public Property commitLevel = newInteger("commitLevel", 200); //$NON-NLS-1$
 
-    // FIXME - should be file
     public Property logFileName = newString("logFileName"); //$NON-NLS-1$
 
     public TSalesforceOutputProperties(String name) {
@@ -74,34 +78,38 @@ public class TSalesforceOutputProperties extends SalesforceOutputProperties {
                 && ACTION_INSERT.equals(outputAction.getValue())) {
 
             Schema mainOutputSchema = createRecordBuilderFromSchema(inputSchema, "output").name("salesforce_id")
-                        .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
-                        .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
-                        .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
-                        .type().stringType().noDefault().endRecord();
+                    .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
+                    .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
+                    .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
+                    .type().stringType().noDefault().endRecord();
 
             schemaFlow.schema.setValue(mainOutputSchema);
         } else {
             schemaFlow.schema.setValue(inputSchema);
         }
 
-        Schema rejectSchema = createRecordBuilderFromSchema(inputSchema, "rejectOutput").name("errorCode") //$NON-NLS-1$  //$NON-NLS-2$
-                .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
-                // column set as non-read-only, to let the user edit the field if needed
-                .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
-                .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
-                .type().stringType().noDefault().name("errorFields")//$NON-NLS-1$
-                .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
-                .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
-                .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
-                .type().stringType().noDefault().name("errorMessage")//$NON-NLS-1$
-                .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
-                .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
-                .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
-                .type().stringType().noDefault().endRecord();
+        if (!extendInsert.getBooleanValue() && !ceaseForError.getBooleanValue()) {
+            Schema rejectSchema = createRecordBuilderFromSchema(inputSchema, "rejectOutput").name("errorCode") //$NON-NLS-1$  //$NON-NLS-2$
+                    .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
+                    // column set as non-read-only, to let the user edit the field if needed
+                    .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
+                    .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
+                    .type().stringType().noDefault().name("errorFields")//$NON-NLS-1$
+                    .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
+                    .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
+                    .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
+                    .type().stringType().noDefault().name("errorMessage")//$NON-NLS-1$
+                    .prop(Talend6SchemaConstants.TALEND6_COLUMN_CUSTOM, "true")//$NON-NLS-1$
+                    .prop(SchemaConstants.TALEND_IS_LOCKED, "false")//$NON-NLS-1$
+                    .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//$NON-NLS-1$
+                    .type().stringType().noDefault().endRecord();
 
-        schemaReject.schema.setValue(rejectSchema);
+            schemaReject.schema.setValue(rejectSchema);
+        } else {
+            schemaReject.schema.setValue(SchemaProperties.EMPTY_SCHEMA);
+        }
     }
-    
+
     private FieldAssembler<Schema> createRecordBuilderFromSchema(Schema inputSchema, String newSchemaName) {
         RecordBuilder<Schema> recordBuilder = SchemaBuilder.record(newSchemaName);
         FieldAssembler<Schema> fieldAssembler = recordBuilder.fields();
@@ -133,6 +141,11 @@ public class TSalesforceOutputProperties extends SalesforceOutputProperties {
         updateOutputSchemas();
     }
 
+    public void afterCeaseForError() {
+        refreshLayout(getForm(Form.ADVANCED));
+        updateOutputSchemas();
+    }
+
     public void afterRetrieveInsertId() {
         refreshLayout(getForm(Form.ADVANCED));
         updateOutputSchemas();
@@ -152,6 +165,20 @@ public class TSalesforceOutputProperties extends SalesforceOutputProperties {
             form.getWidget("ignoreNull").setHidden(
                     !ACTION_UPDATE.equals(outputAction.getValue()) || ACTION_UPSERT.equals(outputAction.getValue()));
         }
+    }
+
+    @Override
+    protected Set<PropertyPathConnector> getAllSchemaPropertiesConnectors(boolean isOutputConnection) {
+        HashSet<PropertyPathConnector> connectors = new HashSet<>();
+        if (isOutputConnection) {
+            connectors.add(FLOW_CONNECTOR);
+            if (!extendInsert.getBooleanValue() && !ceaseForError.getBooleanValue()) {
+                connectors.add(REJECT_CONNECTOR);
+            }
+        } else {
+            connectors.add(MAIN_CONNECTOR);
+        }
+        return connectors;
     }
 
 }

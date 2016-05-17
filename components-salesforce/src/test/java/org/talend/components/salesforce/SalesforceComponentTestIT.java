@@ -28,6 +28,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.talend.components.api.component.ComponentDefinition;
 import org.talend.components.api.component.Connector;
+import org.talend.components.api.component.PropertyPathConnector;
 import org.talend.components.api.container.DefaultComponentRuntimeContainerImpl;
 import org.talend.components.api.container.RuntimeContainer;
 import org.talend.components.api.properties.ComponentProperties;
@@ -100,6 +101,20 @@ public class SalesforceComponentTestIT extends SalesforceTestBase {
         assertEquals(2, props.queryMode.getPossibleValues().size());
         Property returns = (Property) props.getProperty(ComponentProperties.RETURNS);
         assertEquals("NB_LINE", returns.getChildren().get(1).getName());
+    }
+
+    @Test
+    public void testOutputProps() throws Throwable {
+        TSalesforceOutputProperties props = (TSalesforceOutputProperties) new TSalesforceOutputDefinition().createProperties();
+        assertEquals(4, props.outputAction.getPossibleValues().size());
+        // extendInsert and ceaseForError default value is true. So reject connector would can't be showed
+        assertEquals(1, props.getAvailableConnectors(null, true).size());
+        props.extendInsert.setValue(false);
+        assertEquals(1, props.getAvailableConnectors(null, true).size());
+        props.ceaseForError.setValue(false);
+        // After extendInsert and ceaseForError were set to false. Reject connector is showed
+        assertEquals(2, props.getAvailableConnectors(null, true).size());
+        assertTrue(props.getAvailableConnectors(null, true).contains(new PropertyPathConnector(Connector.REJECT_NAME, "schemaReject")));
     }
 
     static class RepoProps {
@@ -582,7 +597,7 @@ public class SalesforceComponentTestIT extends SalesforceTestBase {
                 .fields().name("C")
                 .type().stringType().noDefault().name("D").type().stringType().noDefault().endRecord();
         
-        assertEquals(2, outputProps.getAvailableConnectors(null, true).size());
+        assertEquals(1, outputProps.getAvailableConnectors(null, true).size());
         for (Connector connector : outputProps.getAvailableConnectors(null, true)) {
             if (connector.getName().equals(Connector.MAIN_NAME)) {
                 outputProps.setConnectedSchema(connector, main, true);
@@ -594,7 +609,7 @@ public class SalesforceComponentTestIT extends SalesforceTestBase {
         String serialized = outputProps.toSerialized();
         
         TSalesforceOutputProperties afterSerialized = ComponentProperties.fromSerialized(serialized, TSalesforceOutputProperties.class).properties;
-        assertEquals(2, afterSerialized.getAvailableConnectors(null, true).size());
+        assertEquals(1, afterSerialized.getAvailableConnectors(null, true).size());
         for (Connector connector : afterSerialized.getAvailableConnectors(null, true)) {
             if (connector.getName().equals(Connector.MAIN_NAME)) {
                 Schema main2 = afterSerialized.getSchema(connector, true);
