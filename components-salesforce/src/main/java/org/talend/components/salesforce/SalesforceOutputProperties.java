@@ -17,7 +17,6 @@ import static org.talend.daikon.properties.presentation.Widget.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,9 +34,9 @@ import org.talend.daikon.properties.presentation.Widget;
 
 public class SalesforceOutputProperties extends SalesforceConnectionModuleProperties {
 
-    public static final String NB_SUCCESS = "NB_SUCCESS";
+    public static final String NB_SUCCESS_NAME = "NB_SUCCESS";
 
-    public static final String NB_REJECT = "NB_REJECT";
+    public static final String NB_REJECT_NAME = "NB_REJECT";
 
     public static final String ACTION_INSERT = "INSERT";
 
@@ -62,7 +61,7 @@ public class SalesforceOutputProperties extends SalesforceConnectionModuleProper
     // Advanced
     //
     public UpsertRelationTable upsertRelationTable = new UpsertRelationTable("upsertRelationTable");
-    
+
     //
     // Collections
     //
@@ -73,6 +72,10 @@ public class SalesforceOutputProperties extends SalesforceConnectionModuleProper
     public SchemaProperties schemaFlow = new SchemaProperties("schemaFlow"); //$NON-NLS-1$
 
     public SchemaProperties schemaReject = new SchemaProperties("schemaReject"); //$NON-NLS-1$
+
+    public Property NB_SUCCESS;
+
+    public Property NB_REJECT;
 
     public SalesforceOutputProperties(String name) {
         super(name);
@@ -112,8 +115,8 @@ public class SalesforceOutputProperties extends SalesforceConnectionModuleProper
 
         outputAction.setValue(ACTION_INSERT);
 
-        ComponentPropertyFactory.newReturnProperty(returns, Property.Type.INT, NB_SUCCESS); //$NON-NLS-1$
-        ComponentPropertyFactory.newReturnProperty(returns, Property.Type.INT, NB_REJECT); //$NON-NLS-1$
+        NB_SUCCESS = ComponentPropertyFactory.newReturnProperty(returns, Property.Type.INT, NB_SUCCESS_NAME); //$NON-NLS-1$
+        NB_REJECT = ComponentPropertyFactory.newReturnProperty(returns, Property.Type.INT, NB_REJECT_NAME); //$NON-NLS-1$
 
         module = new ModuleSubclass("module");
         module.connection = connection;
