@@ -12,15 +12,9 @@
 // ============================================================================
 package org.talend.components.salesforce.runtime;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
@@ -178,6 +172,8 @@ public class SalesforceWriterTestIT extends SalesforceTestBase {
         props.module.main.schema.setValue(util.getTestSchema4());
 
         props.outputAction.setValue(TSalesforceOutputProperties.OutputAction.UPDATE);
+        props.ceaseForError.setValue(false);
+        props.extendInsert.setValue(false);
 
         Writer<WriterResult> writer = createSalesforceOutputWriter(props);
 
