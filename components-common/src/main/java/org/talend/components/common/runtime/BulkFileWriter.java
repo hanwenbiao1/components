@@ -1,19 +1,23 @@
 package org.talend.components.common.runtime;
 
-import com.csvreader.CsvWriter;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.IndexedRecord;
-import org.talend.components.api.component.runtime.*;
-import org.talend.components.api.container.RuntimeContainer;
-import org.talend.components.common.BulkFileProperties;
-import org.talend.daikon.avro.IndexedRecordAdapterFactory;
-import org.talend.daikon.avro.util.AvroUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.IndexedRecord;
+import org.talend.components.api.component.runtime.Sink;
+import org.talend.components.api.component.runtime.WriteOperation;
+import org.talend.components.api.component.runtime.Writer;
+import org.talend.components.api.component.runtime.WriterResult;
+import org.talend.components.api.container.RuntimeContainer;
+import org.talend.components.common.BulkFileProperties;
+import org.talend.daikon.avro.IndexedRecordAdapterFactory;
+import org.talend.daikon.avro.util.AvroUtils;
+
+import com.csvreader.CsvWriter;
 
 /**
  * Generate bulk file
@@ -42,12 +46,13 @@ public class BulkFileWriter implements Writer<WriterResult> {
 
     protected int dataCount;
 
-    public BulkFileWriter(WriteOperation<WriterResult> writeOperation, BulkFileProperties bulkProperties, RuntimeContainer container) {
+    public BulkFileWriter(WriteOperation<WriterResult> writeOperation, BulkFileProperties bulkProperties,
+            RuntimeContainer container) {
         this.writeOperation = writeOperation;
         this.container = container;
         this.sink = writeOperation.getSink();
         this.bulkProperties = bulkProperties;
-        this.isAppend = bulkProperties.append.getBooleanValue();
+        this.isAppend = bulkProperties.append.getValue();
     }
 
     @Override
@@ -55,11 +60,14 @@ public class BulkFileWriter implements Writer<WriterResult> {
         this.uId = uId;
         File file = new File(bulkProperties.bulkFilePath.getStringValue());
         file.getParentFile().mkdirs();
-        csvWriter = new CsvWriter(new OutputStreamWriter(
-                new java.io.FileOutputStream(file, isAppend), charset), separator);
+        csvWriter = new CsvWriter(new OutputStreamWriter(new java.io.FileOutputStream(file, isAppend), charset), separator);
+
+        fileIsEmpty = (file.length() == 0);
     }
 
     private boolean headerIsReady = false;
+
+    private boolean fileIsEmpty = false;
 
     @Override
     public void write(Object datum) throws IOException {
@@ -67,7 +75,7 @@ public class BulkFileWriter implements Writer<WriterResult> {
             return;
         }
 
-        if (!isAppend && !headerIsReady) {
+        if (!headerIsReady && (!isAppend || fileIsEmpty)) {
             Schema schema = new Schema.Parser().parse(bulkProperties.schema.schema.getStringValue());
 
             if (AvroUtils.isIncludeAllFields(schema) && (datum instanceof org.apache.avro.generic.IndexedRecord)) {
