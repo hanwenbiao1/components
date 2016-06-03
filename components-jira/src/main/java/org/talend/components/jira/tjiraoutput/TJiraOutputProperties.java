@@ -42,15 +42,6 @@ import org.talend.daikon.properties.property.PropertyFactory;
 public class TJiraOutputProperties extends JiraProperties {
 
     /**
-     * Output result properties names
-     */
-    public static final String NB_LINE = "NB_LINE";
-
-    public static final String NB_SUCCESS = "NB_SUCCESS";
-
-    public static final String NB_REJECT = "NB_REJECT";
-
-    /**
      * Corresponding schemas for each Action
      */
     private static final Schema deleteSchema;
@@ -81,6 +72,17 @@ public class TJiraOutputProperties extends JiraProperties {
         updateSchema = Schema.createRecord("jira", null, null, false, fields);
         updateSchema.addProp(TALEND_IS_LOCKED, "true");
     }
+    
+    /**
+     * Return properties
+     */
+    public transient Property<String> ERROR_MESSAGE;
+    
+    public transient Property<Integer> NB_LINE;
+    
+    public transient Property<Integer> NB_SUCCESS;
+    
+    public transient Property<Integer> NB_REJECT;
 
     /**
      * Combo-box action, which defines what output action to perform for data
@@ -117,9 +119,10 @@ public class TJiraOutputProperties extends JiraProperties {
         deleteSubtasks.setValue(true);
         mode.setValue(ADVANCED);
 
-        ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger(NB_LINE));
-        ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger(NB_SUCCESS));
-        ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger(NB_REJECT));
+        ERROR_MESSAGE = ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newString(ERROR_MESSAGE_NAME));
+        NB_LINE = ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger(NB_LINE_NAME));
+        NB_SUCCESS = ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger(NB_SUCCESS_NAME));
+        NB_REJECT = ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger(NB_REJECT_NAME));
     }
 
     /**

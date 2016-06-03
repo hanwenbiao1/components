@@ -31,6 +31,7 @@ import org.talend.components.jira.avro.IssueIndexedRecord;
 import org.talend.components.jira.connection.Rest;
 import org.talend.components.jira.datum.Entity;
 import org.talend.components.jira.runtime.JiraSource;
+import org.talend.components.jira.tjirainput.TJiraInputProperties;
 import org.talend.daikon.avro.IndexedRecordAdapterFactory;
 
 /**
@@ -78,7 +79,7 @@ public abstract class JiraReader implements Reader<IndexedRecord> {
     /**
      * Number of Jira entities read
      */
-    private int entityCounter = 0;
+    private int dataCount = 0;
 
     /**
      * Stores http parameters which are shared between requests
@@ -147,7 +148,6 @@ public abstract class JiraReader implements Reader<IndexedRecord> {
             throw new IOException("Reader wasn't started");
         }
         entityIndex++;
-        entityCounter++;
 
         if (entityIndex < entities.size()) {
             return true;
@@ -200,8 +200,8 @@ public abstract class JiraReader implements Reader<IndexedRecord> {
 
     @Override
     public void close() throws IOException {
-        container.setComponentData(container.getCurrentComponentId(), "_numberOfRecords",
-                entityCounter);
+        container.setComponentData(container.getCurrentComponentId(), TJiraInputProperties.NB_LINE_NAME,
+                dataCount);
     }
 
     /**
@@ -226,7 +226,7 @@ public abstract class JiraReader implements Reader<IndexedRecord> {
         if(!entities.isEmpty()) {
             hasMoreRecords = true;
             entityIndex = 0;
-            entityCounter++;
+            dataCount = dataCount + entities.size();
         }
     }
 

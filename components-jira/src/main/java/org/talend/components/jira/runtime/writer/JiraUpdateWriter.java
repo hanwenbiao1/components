@@ -27,6 +27,7 @@ import org.apache.avro.generic.IndexedRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.api.component.runtime.WriteOperation;
+import org.talend.components.api.container.RuntimeContainer;
 import org.talend.components.jira.runtime.JiraWriteOperation;
 
 /**
@@ -55,9 +56,10 @@ public class JiraUpdateWriter extends JiraWriter{
      * Constructor sets {@link WriteOperation}
      * 
      * @param writeOperation Jira {@link WriteOperation} instance
+     * @param container Instance of {@link RuntimeContainer}
      */
-    public JiraUpdateWriter(JiraWriteOperation writeOperation) {
-        super(writeOperation);
+    public JiraUpdateWriter(JiraWriteOperation writeOperation, RuntimeContainer container) {
+        super(writeOperation, container);
     }
 
     /**

@@ -22,10 +22,12 @@ import org.slf4j.LoggerFactory;
 import org.talend.components.api.component.runtime.WriteOperation;
 import org.talend.components.api.component.runtime.Writer;
 import org.talend.components.api.component.runtime.WriterResult;
+import org.talend.components.api.container.RuntimeContainer;
 import org.talend.components.api.exception.DataRejectException;
 import org.talend.components.jira.connection.Rest;
 import org.talend.components.jira.runtime.JiraWriteOperation;
 import org.talend.components.jira.runtime.result.DataCountResult;
+import org.talend.components.jira.tjiraoutput.TJiraOutputProperties;
 import org.talend.daikon.avro.AvroRegistry;
 import org.talend.daikon.avro.IndexedRecordAdapterFactory;
 
@@ -80,15 +82,23 @@ public class JiraWriter implements Writer<DataCountResult> {
      * Jira REST resource
      */
     protected final String resource;
+    
+    /**
+     * Instance of {@link RuntimeContainer} to set return properties
+     * FIXME should be removed after fix in codegen
+     */
+    private RuntimeContainer container;
 
     /**
      * Constructor sets {@link WriteOperation}
      * 
      * @param writeOperation Jira {@link WriteOperation} instance
+     * @param container Instance of {@link RuntimeContainer}
      */
-    public JiraWriter(JiraWriteOperation writeOperation) {
+    public JiraWriter(JiraWriteOperation writeOperation, RuntimeContainer container) {
         this.writeOperation = writeOperation;
         this.resource = writeOperation.getSink().getResource();
+        this.container = container;
     }
 
     /**
@@ -135,6 +145,15 @@ public class JiraWriter implements Writer<DataCountResult> {
         // Rest connection doesn't require closing
         rest = null;
         opened = false;
+        
+        if (container != null) {
+            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_LINE_NAME,
+                    dataCount);
+            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_SUCCESS_NAME,
+                    successCount);
+            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_REJECT_NAME,
+                    rejectCount);
+        }
 
         DataCountResult result = new DataCountResult(uId, dataCount, successCount, rejectCount);
         dataCount = 0;

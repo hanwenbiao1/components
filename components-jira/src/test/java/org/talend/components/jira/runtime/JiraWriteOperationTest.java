@@ -125,8 +125,8 @@ public class JiraWriteOperationTest {
 
         writeOperation.finalize(results, container);
 
-        assertEquals(40, container.getComponentData("tJIRAOutput", TJiraOutputProperties.NB_LINE));
-        assertEquals(30, container.getComponentData("tJIRAOutput", TJiraOutputProperties.NB_SUCCESS));
-        assertEquals(10, container.getComponentData("tJIRAOutput", TJiraOutputProperties.NB_REJECT));
+        assertEquals(40, container.getComponentData("tJIRAOutput", TJiraOutputProperties.NB_LINE_NAME));
+        assertEquals(30, container.getComponentData("tJIRAOutput", TJiraOutputProperties.NB_SUCCESS_NAME));
+        assertEquals(10, container.getComponentData("tJIRAOutput", TJiraOutputProperties.NB_REJECT_NAME));
     }
 }

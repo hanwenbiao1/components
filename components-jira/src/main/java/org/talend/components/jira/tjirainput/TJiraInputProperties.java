@@ -33,6 +33,13 @@ import org.talend.daikon.properties.property.PropertyFactory;
  * {@link Properties} for Jira input component.
  */
 public class TJiraInputProperties extends JiraProperties {
+    
+    /**
+     * Return properties
+     */
+    public transient Property<String> ERROR_MESSAGE;
+    
+    public transient Property<Integer> NB_LINE;
 
     /**
      * Jira Query language request property
@@ -69,7 +76,8 @@ public class TJiraInputProperties extends JiraProperties {
         projectId.setValue("");
         batchSize.setValue(50);
 
-        ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger("numberOfRecords"));
+        ERROR_MESSAGE = ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newString(ERROR_MESSAGE_NAME));
+        NB_LINE = ComponentPropertyFactory.newReturnProperty(getReturns(), PropertyFactory.newInteger(NB_LINE_NAME));
     }
 
     /**

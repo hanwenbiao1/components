@@ -25,6 +25,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.talend.components.api.component.runtime.WriteOperation;
 import org.talend.components.api.component.runtime.WriterResult;
+import org.talend.components.api.container.DefaultComponentRuntimeContainerImpl;
+import org.talend.components.api.container.RuntimeContainer;
 import org.talend.components.jira.connection.Rest;
 import org.talend.components.jira.runtime.JiraSink;
 import org.talend.components.jira.runtime.JiraWriteOperation;
@@ -46,6 +48,11 @@ public class JiraWriterTest {
     private JiraWriteOperation writeOperation;
     
     /**
+     * {@link RuntimeContainer} for tests
+     */
+    private RuntimeContainer container;
+    
+    /**
      * Sets up mocks used in tests
      */
     @Before
@@ -57,6 +64,8 @@ public class JiraWriterTest {
         
         writeOperation = mock(JiraWriteOperation.class);
         when(writeOperation.getSink()).thenReturn(sink);
+        
+        container = new DefaultComponentRuntimeContainerImpl();
     }
     
     /**
@@ -64,7 +73,7 @@ public class JiraWriterTest {
      */
     @Test
     public void testOpen() {
-        JiraWriter writer = new JiraWriter(writeOperation);
+        JiraWriter writer = new JiraWriter(writeOperation, container);
         
         writer.open("uId");
         
@@ -77,7 +86,7 @@ public class JiraWriterTest {
      */
     @Test
     public void testGetWriteOperation() {
-        JiraWriter writer = new JiraWriter(writeOperation);
+        JiraWriter writer = new JiraWriter(writeOperation, container);
         
         JiraWriteOperation actualWriteOperation = writer.getWriteOperation();
         
@@ -89,7 +98,7 @@ public class JiraWriterTest {
      */
     @Test
     public void testClose() {
-        JiraWriter writer = new JiraWriter(writeOperation);
+        JiraWriter writer = new JiraWriter(writeOperation, container);
         writer.open("uId");
 
         DataCountResult result = writer.close();

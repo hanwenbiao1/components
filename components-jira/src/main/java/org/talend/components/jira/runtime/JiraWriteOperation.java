@@ -81,13 +81,13 @@ public class JiraWriteOperation implements WriteOperation<DataCountResult> {
         Action action = sink.getAction();
         switch (action) {
         case DELETE: {
-            return new JiraDeleteWriter(this);
+            return new JiraDeleteWriter(this, container);
         }
         case INSERT: {
-            return new JiraInsertWriter(this);
+            return new JiraInsertWriter(this, container);
         }
         case UPDATE: {
-            return new JiraUpdateWriter(this);
+            return new JiraUpdateWriter(this, container);
         }
         default: {
             LOG.debug("Impossible action retrieved from Jira sink");
@@ -104,17 +104,20 @@ public class JiraWriteOperation implements WriteOperation<DataCountResult> {
      */
     @Override
     public void finalize(Iterable<DataCountResult> results, RuntimeContainer container) {
-        
-        for(DataCountResult result : results) {
+
+        for (DataCountResult result : results) {
             totalDataCount = totalDataCount + result.getDataCount();
             totalSuccessCount = totalSuccessCount + result.getSuccessCount();
             totalRejectCount = totalRejectCount + result.getRejectCount();
         }
-        
+
         if (container != null) {
-            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_LINE, totalDataCount);
-            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_SUCCESS, totalSuccessCount);
-            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_REJECT, totalRejectCount);
+            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_LINE_NAME,
+                    totalDataCount);
+            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_SUCCESS_NAME,
+                    totalSuccessCount);
+            container.setComponentData(container.getCurrentComponentId(), TJiraOutputProperties.NB_REJECT_NAME,
+                    totalRejectCount);
         }
     }
 
