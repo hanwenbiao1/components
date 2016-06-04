@@ -43,7 +43,7 @@ public class TestJsonSerialize {
         String jsonioString = tsip.toSerialized();
         System.out.println("jsonio:" + FileUtils.byteCountToDisplaySize(jsonioString.getBytes().length));
         TSalesforceInputProperties salesforceInputProperties = Properties.Helper.fromSerialized(jsonioString,
-                TSalesforceInputProperties.class).properties;
+                TSalesforceInputProperties.class).object;
         assertNull(salesforceInputProperties.connection.proxy.host.getValue());
         assertEquals("foooo", tsip.connection.userPassword.userId.getValue());
     }
